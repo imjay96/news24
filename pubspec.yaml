@@ -23,7 +23,7 @@ dev_dependencies:
     sdk: flutter
   build_runner:
   flutter_gen:
-  webdev: ^2.7.12
+  webdev: 3.7.2
 
   flutter_lints: ^5.0.0
 
