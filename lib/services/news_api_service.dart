@@ -16,7 +16,6 @@ class NewsApiService {
     'technology',
   ];
 
-  // สำหรับ category ตาม API
   Future<List<News>> fetchNews({
     String country = 'us',
     String category = 'general',
@@ -59,7 +58,6 @@ class NewsApiService {
     }
   }
 
-  // สำหรับ "For You" / รวมหลายหมวด
   Future<List<News>> fetchForYou({
     String query = 'general OR trending OR latest',
     int page = 1,
