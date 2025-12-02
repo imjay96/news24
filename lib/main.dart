@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-
 import 'screen/homescreen.dart';
 import 'screen/news.dart';
 import 'screen/bookmark.dart';
@@ -13,7 +12,10 @@ void main() {
 
 final _router = GoRouter(
   routes: [
-    GoRoute(path: '/', builder: (context, state) => const HomeScreen()),
+    GoRoute(
+      path: '/',
+      builder: (context, state) => const HomeScreen(),
+    ),
     GoRoute(
       path: '/detail',
       builder: (context, state) {
@@ -34,10 +36,8 @@ class News24App extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     return MaterialApp.router(
-      title: 'News24',
       debugShowCheckedModeBanner: false,
       routerConfig: _router,
-      theme: ThemeData(primarySwatch: Colors.blue),
     );
   }
 }

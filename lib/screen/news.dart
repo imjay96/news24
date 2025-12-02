@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:news24/models/news_model.dart';
 import 'package:news24/bookmarkpro.dart';
 import 'package:timeago/timeago.dart' as timeago;
+import 'package:share_plus/share_plus.dart';
 
 class newscreen extends ConsumerWidget {
   final News news;
@@ -11,17 +12,14 @@ class newscreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final isBookmarked = ref
-        .watch(bookmarkProvider.notifier)
-        .isBookmarked(news);
+    final bookmarkedList = ref.watch(bookmarkProvider);
+    final isBookmarked = bookmarkedList.contains(news);
 
     void toggleBookmark() {
       ref.read(bookmarkProvider.notifier).toggleBookmark(news);
 
-      final message =
-          ref.read(bookmarkProvider.notifier).isBookmarked(news)
-              ? 'เพิ่มบุ๊คมาร์กแล้ว'
-              : 'ลบบุ๊คมาร์กแล้ว';
+      final message = isBookmarked ? 'Bookmark deleted' : 'Bookmark added';
+
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(SnackBar(content: Text(message)));
@@ -46,12 +44,16 @@ class newscreen extends ConsumerWidget {
           IconButton(
             icon: Icon(isBookmarked ? Icons.bookmark : Icons.bookmark_border),
             onPressed: toggleBookmark,
-            tooltip: isBookmarked ? 'ลบบุ๊คมาร์ก' : 'เพิ่มบุ๊คมาร์ก',
+            tooltip: isBookmarked ? 'Bookmark deleted' : 'Bookmark added',
           ),
           IconButton(
             icon: const Icon(Icons.share),
-            onPressed: () {},
-            tooltip: 'แชร์ข่าว',
+            onPressed: () {
+              final shareText =
+                  '${news.title}\n\nอ่านต่อที่: ${news.urlToImage.isNotEmpty ? news.urlToImage : ''}';
+              Share.share(shareText);
+            },
+            tooltip: 'Share',
           ),
         ],
       ),
@@ -63,7 +65,15 @@ class newscreen extends ConsumerWidget {
             if (news.urlToImage.isNotEmpty)
               ClipRRect(
                 borderRadius: BorderRadius.circular(8),
-                child: Image.network(news.urlToImage),
+                child: Image.network(
+                  news.urlToImage,
+                  errorBuilder:
+                      (context, error, stackTrace) => Container(
+                        height: 200,
+                        color: Colors.grey[300],
+                        child: const Icon(Icons.broken_image, size: 60),
+                      ),
+                ),
               ),
             const SizedBox(height: 16),
             Text(
@@ -98,11 +108,8 @@ class newscreen extends ConsumerWidget {
                   alignment: Alignment.centerRight,
                   child: Text(
                     publishedDateTime != null
-                        ? timeago.format(
-                          publishedDateTime,
-                          locale: 'th',
-                        ) // ใช้ timeago แสดงเวลา
-                        : 'ไม่ทราบเวลา',
+                        ? timeago.format(publishedDateTime, locale: 'en')
+                        : 'Unknown Time',
                     style: TextStyle(color: Colors.grey[600]),
                   ),
                 ),

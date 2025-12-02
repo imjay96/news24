@@ -12,10 +12,10 @@ class BookmarkScreen extends ConsumerWidget {
     final bookmarkedNews = ref.watch(bookmarkProvider);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('บุ๊คมาร์ค'), centerTitle: true),
+      appBar: AppBar(title: const Text('Bookmark'), centerTitle: true),
       body:
           bookmarkedNews.isEmpty
-              ? const Center(child: Text('ยังไม่มีข่าวที่บันทึกไว้'))
+              ? const Center(child: Text('no recorded news'))
               : ListView.builder(
                 itemCount: bookmarkedNews.length,
                 itemBuilder: (context, index) {

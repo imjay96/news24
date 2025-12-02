@@ -38,11 +38,11 @@ class NewsTile extends StatelessWidget {
           children: [
             const SizedBox(height: 4),
             Text(
-              news.category.isNotEmpty ? news.category : 'ไม่ระบุหมวดหมู่',
+              news.category.isNotEmpty ? news.category : 'Uncategorized',
               style: const TextStyle(fontSize: 12, color: Colors.blueAccent),
             ),
             Text(
-              news.author.isNotEmpty ? news.author : 'ไม่ระบุผู้เขียน',
+              news.author.isNotEmpty ? news.author : 'Author not specified',
               style: const TextStyle(fontSize: 12, color: Colors.black87),
             ),
             Text(

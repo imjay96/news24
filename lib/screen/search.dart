@@ -52,9 +52,9 @@ class _SearchScreenState extends State<SearchScreen> {
         _hasMore = results.length == _pageSize;
       });
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('ค้นหาไม่สำเร็จ: $e')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('ค้นหาไม่สำเร็จ: $e')));
     }
 
     setState(() => _isLoading = false);
@@ -92,10 +92,7 @@ class _SearchScreenState extends State<SearchScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('ค้นหาข่าว'),
-        centerTitle: true,
-      ),
+      appBar: AppBar(title: const Text('ค้นหาข่าว'), centerTitle: true),
       body: Column(
         children: [
           Padding(
@@ -104,7 +101,7 @@ class _SearchScreenState extends State<SearchScreen> {
               controller: _searchController,
               onSubmitted: (_) => _searchNews(isRefresh: true),
               decoration: InputDecoration(
-                hintText: 'พิมพ์คำค้นหา...',
+                hintText: 'search...',
                 suffixIcon: IconButton(
                   icon: const Icon(Icons.search),
                   onPressed: () => _searchNews(isRefresh: true),
@@ -122,27 +119,28 @@ class _SearchScreenState extends State<SearchScreen> {
               enablePullUp: true,
               onRefresh: _onRefresh,
               onLoading: _onLoading,
-              child: _isLoading && _searchResults.isEmpty
-                  ? const Center(child: CircularProgressIndicator())
-                  : _searchResults.isEmpty
-                      ? const Center(child: Text('ยังไม่มีผลลัพธ์'))
+              child:
+                  _isLoading && _searchResults.isEmpty
+                      ? const Center(child: CircularProgressIndicator())
+                      : _searchResults.isEmpty
+                      ? const Center(child: Text('No results'))
                       : ListView.builder(
-                          itemCount: _searchResults.length,
-                          itemBuilder: (context, index) {
-                            final news = _searchResults[index];
-                            return GestureDetector(
-                              onTap: () {
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (_) => newscreen(news: news),
-                                  ),
-                                );
-                              },
-                              child: NewsTile(news: news),
-                            );
-                          },
-                        ),
+                        itemCount: _searchResults.length,
+                        itemBuilder: (context, index) {
+                          final news = _searchResults[index];
+                          return GestureDetector(
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => newscreen(news: news),
+                                ),
+                              );
+                            },
+                            child: NewsTile(news: news),
+                          );
+                        },
+                      ),
             ),
           ),
         ],

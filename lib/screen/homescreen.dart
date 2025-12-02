@@ -1,3 +1,4 @@
+import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:news24/models/news_model.dart';
@@ -29,12 +30,24 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     'Health',
   ];
 
+  final List<String> _forYouCategories = [
+    'technology',
+    'sports',
+    'health',
+    'general',
+    'politics',
+    'world',
+  ];
+
+  final Random _random = Random();
+
   int _selectedCategoryIndex = 0;
   int _currentPage = 1;
-  final int _pageSize = 5;
+  final int _pageSize = 3;
 
   bool _isLoading = false;
   bool _hasMore = true;
+  String? _errorMessage;
 
   List<News> _newsList = [];
 
@@ -48,7 +61,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   void initState() {
     super.initState();
 
-    timeago.setLocaleMessages('us', timeago.ThMessages());
+    timeago.setLocaleMessages('en', timeago.EnMessages());
 
     _fetchInitialNews();
   }
@@ -62,11 +75,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
   Future<void> _fetchNews({bool isRefresh = false}) async {
     if (_isLoading) return;
-    setState(() => _isLoading = true);
+    setState(() {
+      _isLoading = true;
+      if (isRefresh) _errorMessage = null;
+    });
 
     final categoryLabel = _categories[_selectedCategoryIndex];
-    final Map<String, String> categoryMap = {
-      'For You': 'general',
+    final Map<String, String> categoryMapApi = {
       'Top': 'general',
       'World': 'general',
       'Politics': 'general',
@@ -74,10 +89,17 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       'Sports': 'sports',
       'Health': 'health',
     };
-    final category = categoryMap[categoryLabel] ?? 'general';
+
+    String category;
+
+    if (categoryLabel == 'For You') {
+      category = _forYouCategories[_random.nextInt(_forYouCategories.length)];
+    } else {
+      category = categoryMapApi[categoryLabel] ?? 'general';
+    }
 
     try {
-      final news = await _apiService.fetchnews(
+      final news = await _apiService.fetchNews(
         category: category,
         page: _currentPage,
         pageSize: _pageSize,
@@ -91,9 +113,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         _hasMore = news.length == _pageSize;
       });
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('เกิดข้อผิดพลาดในการโหลดข่าว: $e')),
-      );
+      setState(() {
+        _errorMessage = e.toString();
+      });
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Error loading news: $e')));
     }
 
     setState(() => _isLoading = false);
@@ -121,6 +146,60 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     } else {
       _refreshController.loadNoData();
     }
+  }
+
+  Widget _buildBody() {
+    if (_isLoading && _newsList.isEmpty) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
+    if (_errorMessage != null && _newsList.isEmpty) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Icons.error_outline, size: 80, color: Colors.redAccent),
+              const SizedBox(height: 16),
+              Text(
+                'error',
+                style: TextStyle(
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.redAccent,
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 8),
+              Text(
+                _errorMessage!,
+                style: TextStyle(fontSize: 16, color: Colors.black54),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 24),
+              ElevatedButton.icon(
+                onPressed: _fetchInitialNews,
+                icon: const Icon(Icons.refresh),
+                label: const Text('Try Again'),
+                style: ElevatedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 32,
+                    vertical: 12,
+                  ),
+                  textStyle: const TextStyle(fontSize: 16),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(30),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    return _buildNewsList();
   }
 
   @override
@@ -155,12 +234,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       body:
           _tabIndex == 0
               ? Column(
-                children: [
-                  _buildCategoryTabs(),
-                  Expanded(child: _buildNewsList()),
-                ],
+                children: [_buildCategoryTabs(), Expanded(child: _buildBody())],
               )
-              : _tabs[_tabIndex - 1], // Search or Bookmark screens
+              : _tabs[_tabIndex - 1],
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _tabIndex,
         onTap: (index) {
@@ -231,6 +307,19 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     final bookmarkNotifier = ref.watch(bookmarkProvider.notifier);
     final bookmarked = ref.watch(bookmarkProvider);
 
+    final screenWidth = MediaQuery.of(context).size.width;
+    final imageWidth = screenWidth * 0.3;
+    final imageHeight = imageWidth;
+
+    final Map<String, String> categoryMapDisplay = {
+      'general': 'General',
+      'technology': 'Technology',
+      'sports': 'Sports',
+      'health': 'Health',
+      'politics': 'Politics',
+      'world': 'World',
+    };
+
     return SmartRefresher(
       controller: _refreshController,
       enablePullDown: true,
@@ -245,15 +334,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           final news = _newsList[index];
           final isBookmarked = bookmarked.contains(news);
 
-          final Map<String, String> categoryMap = {
-            'general': 'General',
-            'technology': 'Technology',
-            'sports': 'Sports',
-            'health': 'Health',
-          };
-
           final categoryLabel =
-              categoryMap[news.category?.toLowerCase() ?? ''] ?? '-';
+              categoryMapDisplay[(news.category ?? '').toLowerCase()] ?? '-';
 
           return GestureDetector(
             onTap: () {
@@ -271,8 +353,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   ClipRRect(
                     borderRadius: BorderRadius.circular(8),
                     child: SizedBox(
-                      width: 120,
-                      height: 120,
+                      width: imageWidth,
+                      height: imageHeight,
                       child: Image.network(
                         news.imageUrl,
                         fit: BoxFit.cover,
@@ -286,88 +368,107 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                     ),
                   ),
                   const SizedBox(width: 16),
+
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        // ชื่อข่าว
                         Text(
                           news.title,
                           maxLines: 3,
                           overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontWeight: FontWeight.bold,
-                            fontSize: 20,
-                            color: Color.fromARGB(255, 0, 0, 0),
+                            fontSize: screenWidth * 0.05,
+                            color: const Color.fromARGB(255, 0, 0, 0),
                           ),
                         ),
+
                         const SizedBox(height: 8),
-                        // ชื่อผู้เขียน
+
                         Text(
-                          'By ${news.author?.isNotEmpty == true ? news.author : '-'}',
-                          style: const TextStyle(
+                          'By ${news.author.isNotEmpty == true ? news.author : '-'}',
+                          style: TextStyle(
                             fontStyle: FontStyle.italic,
-                            color: Color.fromARGB(179, 0, 0, 0),
-                            fontSize: 14,
+                            color: const Color.fromARGB(179, 0, 0, 0),
+                            fontSize: screenWidth * 0.035,
                           ),
                         ),
+
                         const SizedBox(height: 8),
-                        // หมวดหมู่ + เวลาแยกชิดขวา
+
                         Row(
                           children: [
                             Text(
                               categoryLabel,
-                              style: const TextStyle(
-                                fontSize: 14,
-                                color: Color.fromARGB(137, 0, 0, 0),
+                              style: TextStyle(
+                                fontSize: screenWidth * 0.035,
+                                height: 1.1,
+                                color: const Color.fromARGB(136, 28, 153, 255),
                               ),
                             ),
-                            const Spacer(),
+
+                            const SizedBox(width: 6),
+
+                            const Text(
+                              '•',
+                              style: TextStyle(
+                                fontSize: 14,
+                                color: Colors.grey,
+                                fontWeight: FontWeight.bold,
+                                height: 1,
+                              ),
+                            ),
+
+                            const SizedBox(width: 6),
+
                             Text(
                               news.publishedDateTime != null
                                   ? timeago.format(
                                     news.publishedDateTime!,
-                                    locale: 'Us',
-                                  ) // <-- กำหนด locale 'th' หรือเปลี่ยนเป็น 'en' ได้
-                                  : 'ไม่ทราบเวลา',
-                              style: const TextStyle(
-                                fontSize: 14,
-                                color: Color.fromARGB(137, 0, 0, 0),
+                                    locale: 'en',
+                                  )
+                                  : 'Unknown time',
+                              style: TextStyle(
+                                fontSize: screenWidth * 0.035,
+                                color: const Color.fromARGB(137, 0, 0, 0),
+                                height: 1.1,
                               ),
+                            ),
+
+                            const Spacer(),
+
+                            PopupMenuButton<String>(
+                              icon: const Icon(
+                                Icons.more_vert,
+                                color: Color.fromARGB(137, 0, 0, 0),
+                                size: 22,
+                              ),
+                              onSelected: (value) {
+                                if (value == 'bookmark') {
+                                  bookmarkNotifier.toggleBookmark(news);
+                                }
+                              },
+                              itemBuilder:
+                                  (context) => [
+                                    PopupMenuItem(
+                                      value: 'bookmark',
+                                      child: Text(
+                                        isBookmarked
+                                            ? 'Remove Bookmark'
+                                            : 'Add Bookmark',
+                                      ),
+                                    ),
+                                    const PopupMenuItem(
+                                      value: 'share',
+                                      child: Text('Share'),
+                                    ),
+                                  ],
                             ),
                           ],
                         ),
                       ],
                     ),
-                  ),
-                  PopupMenuButton<String>(
-                    icon: const Text(
-                      '...',
-                      style: TextStyle(
-                        fontSize: 28,
-                        fontWeight: FontWeight.bold,
-                        color: Color.fromARGB(137, 0, 0, 0),
-                      ),
-                    ),
-                    onSelected: (value) {
-                      if (value == 'bookmark') {
-                        bookmarkNotifier.toggleBookmark(news);
-                      }
-                      if (value == 'share') {}
-                    },
-                    itemBuilder:
-                        (context) => [
-                          PopupMenuItem(
-                            value: 'bookmark',
-                            child: Text(
-                              isBookmarked ? 'Remove Bookmark' : 'Add Bookmark',
-                            ),
-                          ),
-                          const PopupMenuItem(
-                            value: 'share',
-                            child: Text('Share'),
-                          ),
-                        ],
                   ),
                 ],
               ),
