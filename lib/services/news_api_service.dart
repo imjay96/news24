@@ -95,7 +95,6 @@ class NewsApiService {
     }
   }
 
-  // สำหรับ search keyword เฉพาะ
   Future<List<News>> searchNews({
     required String query,
     int page = 1,

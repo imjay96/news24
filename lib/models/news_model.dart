@@ -45,7 +45,7 @@ class News {
     }
   }
 
-  // Use `url` as unique identifier for equality / bookmark checks
+  
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
